@@ -1,0 +1,35 @@
+# Ignore OpenTofu / Terraform state files
+*.tfstate
+*.tfstate.backup
+.terraform/
+.tofu/
+
+# Ignore OpenTofu crash logs
+crash.log
+crash.*.log
+
+# Ignore local environment files
+terraform.tfvars
+terraform.tfvars.json
+*.auto.tfvars
+
+# Ignore plan output
+*.tfplan
+
+# Ignore sensitive credentials and keys
+*.pem
+*.key
+*.crt
+*.enc
+
+# Ignore editor/IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*.bak
+
+# Ignore system files
+.DS_Store
+Thumbs.db
+
