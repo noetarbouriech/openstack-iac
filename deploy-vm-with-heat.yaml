@@ -1,0 +1,59 @@
+heat_template_version: 2021-04-16
+
+description: >
+  Deploy a virtual machine with a floating IP using OpenStack Heat.
+
+parameters:
+  image_name:
+    type: string
+    description: Name of the image to use for the instance.
+
+  flavor_name:
+    type: string
+    description: Name of the flavor to use for the instance.
+
+  vm_name:
+    type: string
+    description: Name of the virtual machine.
+
+  key_pair:
+    type: string
+    description: Name of the key pair to use for SSH access.
+
+  sg_name:
+    type: string
+    description: Name of the security group.
+
+  network_name:
+    type: string
+    description: Name of the network to attach the VM to.
+
+resources:
+  # Create the instance
+  vm:
+    type: OS::Nova::Server
+    properties:
+      name: { get_param: vm_name }
+      image: { get_param: image_name }
+      flavor: { get_param: flavor_name }
+      key_name: { get_param: key_pair }
+      security_groups:
+        - { get_param: sg_name }
+      networks:
+        - network: { get_param: network_name }
+      metadata:
+        description: "Deployed via OpenStack Heat"
+
+  # Create a floating IP
+  floating_ip:
+    type: OS::Neutron::FloatingIP
+    properties:
+      floating_network: public
+
+  # Associate the floating IP with the instance
+  floating_ip_association:
+    type: OS::Neutron::FloatingIPAssociation
+    properties:
+      floatingip_id: { get_resource: floating_ip }
+      port_id:
+        { get_attr: [vm, addresses, { get_param: network_name }, 0, port] }
