@@ -8,11 +8,6 @@ data "openstack_compute_flavor_v2" "flavor" {
   name = var.flavor_name
 }
 
-# Fetch the Network
-data "openstack_networking_network_v2" "network" {
-  name = var.network_name
-}
-
 # Create the VM
 resource "openstack_compute_instance_v2" "vm" {
   name            = var.vm_name
@@ -22,10 +17,21 @@ resource "openstack_compute_instance_v2" "vm" {
   security_groups = [var.sg_name]
 
   network {
-    uuid = data.openstack_networking_network_v2.network.id
+    name = var.network_name
   }
 
   metadata = {
     description = "Deployed via OpenTofu on OpenStack"
   }
+}
+
+# Create a Floating IP
+resource "openstack_networking_floatingip_v2" "fip" {
+  pool = "public"
+}
+
+# Associate the Floating IP to the VM
+resource "openstack_compute_floatingip_associate_v2" "fip_assoc" {
+  floating_ip = openstack_networking_floatingip_v2.fip.address
+  instance_id = openstack_compute_instance_v2.vm.id
 }
