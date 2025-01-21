@@ -1,0 +1,20 @@
+global
+    log stdout format raw local0
+    maxconn 2000
+
+defaults
+    log     global
+    option  httplog
+    option  dontlognull
+    timeout connect 5000ms
+    timeout client  50000ms
+    timeout server  50000ms
+
+frontend http_front
+    bind *:80
+    default_backend http_back
+
+backend http_back
+    balance roundrobin
+    server server1 {{ webapp1_ip }}:3000 check
+    server server2 {{ webapp2_ip }}:3000 check

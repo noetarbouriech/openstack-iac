@@ -1,0 +1,53 @@
+---
+- name: Install and run PostgreSQL
+  hosts: all
+  become: true
+
+  tasks:
+    - name: Install PostgreSQL
+      apt:
+        name:
+          - postgresql
+          - python3-psycopg2
+        state: present
+        update_cache: yes
+
+    - name: Ensure PostgreSQL service is enabled and started
+      service:
+        name: postgresql
+        state: started
+        enabled: yes
+
+    - name: Get the installed PostgreSQL version
+      command: psql -V
+      register: postgres_version_output
+
+    - name: Extract the major version of PostgreSQL
+      set_fact:
+        postgres_version: "{{ postgres_version_output.stdout | regex_search('([0-9]+)') }}"
+
+    - name: Allow remote connections by editing `postgresql.conf`
+      lineinfile:
+        path: "/etc/postgresql/{{ postgres_version }}/main/postgresql.conf"
+        regexp: "^#?(listen_addresses)"
+        line: "listen_addresses = '*'"
+        state: present
+      notify: Restart PostgreSQL
+
+    - name: Allow remote connections to PostgreSQL
+      lineinfile:
+        path: /etc/postgresql/{{ postgres_version }}/main/pg_hba.conf
+        line: "host    all             all             0.0.0.0/0            md5"
+      notify: Restart PostgreSQL
+
+    - name: Create a root user with a password
+      command: 'sudo -u postgres psql -c "CREATE USER root WITH PASSWORD ''root'';"'
+
+    - name: Grant superuser privileges to the root user
+      command: 'sudo -u postgres psql -c "ALTER USER root WITH SUPERUSER;"'
+
+  handlers:
+    - name: Restart PostgreSQL
+      service:
+        name: postgresql
+        state: restarted

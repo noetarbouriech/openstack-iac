@@ -1,0 +1,15 @@
+services:
+  web:
+    image: ghcr.io/do3-2023/nta-kube/webapp:main
+    ports:
+      - 3000:3000
+    environment:
+      - API_URL=http://api:3000
+  api:
+    image: ghcr.io/do3-2023/nta-kube/api:main
+    restart: always
+    environment:
+      - DB_URL={{ database_ip }}:5432
+      - DB_USERNAME=root
+      - DB_PASSWORD=root
+      - DB_NAME=postgres
