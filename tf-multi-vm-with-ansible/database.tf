@@ -19,28 +19,27 @@ resource "openstack_compute_instance_v2" "database_vm" {
   }
 }
 
-# Create a Floating IP
-resource "openstack_networking_floatingip_v2" "database_fip" {
-  pool = "public"
-}
-
-# Associate the Floating IP to the VM
-resource "openstack_compute_floatingip_associate_v2" "database_fip_assoc" {
-  floating_ip = openstack_networking_floatingip_v2.database_fip.address
-  instance_id = openstack_compute_instance_v2.database_vm.id
-}
-
 # Run the Ansible playbook for the VM after the floating IP is associated
 resource "null_resource" "database_provisioner" {
   provisioner "local-exec" {
     command = <<EOT
       sleep 30  # Wait for 30 seconds
-      ANSIBLE_HOST_KEY_CHECKING=False ansible-playbook -u debian -i ${openstack_networking_floatingip_v2.database_fip.address}, --private-key ~/.ssh/id_ed25519 -e webapp1_ip=${openstack_compute_instance_v2.webapp1_vm.access_ip_v4} -e webapp2_ip=${openstack_compute_instance_v2.webapp2_vm.access_ip_v4} playbooks/postgresql.yml
+      
+      # Disable host key checking and run the playbook
+      ANSIBLE_HOST_KEY_CHECKING=False \
+      ANSIBLE_SSH_ARGS='-o ProxyCommand="ssh -o "StrictHostKeyChecking=no" -o UserKnownHostsFile=/dev/null -W %h:%p -q debian@${openstack_networking_floatingip_v2.loadbalancer_fip.address}" -o "StrictHostKeyChecking=no" -o UserKnownHostsFile=/dev/null' \
+      ansible-playbook \
+        -u debian \
+        -i ${openstack_compute_instance_v2.database_vm.access_ip_v4}, \
+        --private-key ~/.ssh/id_ed25519 \
+        -e webapp1_ip=${openstack_compute_instance_v2.webapp1_vm.access_ip_v4} \
+        -e webapp2_ip=${openstack_compute_instance_v2.webapp2_vm.access_ip_v4} \
+        playbooks/postgresql.yml
     EOT
   }
 
   depends_on = [
     openstack_compute_instance_v2.database_vm,
-    openstack_compute_floatingip_associate_v2.database_fip_assoc
+    openstack_compute_floatingip_associate_v2.loadbalancer_fip_assoc
   ]
 }
