@@ -33,3 +33,8 @@ terraform.tfvars.json
 .DS_Store
 Thumbs.db
 
+# Ignore Talos config files
+disk.raw
+controlplane.yaml
+worker.yaml
+talosconfig
